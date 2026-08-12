@@ -1,0 +1,7 @@
+.env
+__pycache__/
+*.pyc
+venv/
+out/*.png
+node_modules/
+package*.json

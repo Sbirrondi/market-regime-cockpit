@@ -1,0 +1,61 @@
+name: Aggiorna Market Regime Cockpit
+
+on:
+  schedule:
+    # 05:30 UTC nei giorni feriali = 07:30 ora italiana (legale) / 06:30 (solare).
+    # Dopo la chiusura USA della sera prima, prima dell'apertura europea.
+    - cron: "30 5 * * 1-5"
+  workflow_dispatch:        # permette di lanciarlo a mano dal tab Actions
+
+permissions:
+  contents: write           # serve per ricommittare i dati aggiornati
+  pages: write
+  id-token: write
+
+concurrency:
+  group: aggiorna
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    # actions/deploy-pages pubblica solo da un job legato all'ambiente
+    # "github-pages": senza questo blocco il deploy fallisce.
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Installa dipendenze
+        run: pip install -r requirements.txt
+
+      - name: Scarica dati e ricalcola i regimi
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+          YF_PACE: "2.0"
+        run: python run.py
+
+      - name: Committa i dati aggiornati
+        run: |
+          git config user.name  "regime-bot"
+          git config user.email "regime-bot@users.noreply.github.com"
+          git add data/cache out/payload.json out/index.html
+          if git diff --staged --quiet; then
+            echo "nessuna variazione"
+          else
+            git commit -m "Aggiornamento automatico $(date -u +%Y-%m-%d)"
+            git push
+          fi
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: out
+      - uses: actions/deploy-pages@v4
+        id: deployment

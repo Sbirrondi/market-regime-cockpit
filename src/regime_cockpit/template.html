@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="it" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Market Regime Cockpit</title>
+<style>
+:root{
+  color-scheme: dark;
+  --plane:#0d0d0d; --surface:#1a1a19; --surface-2:#212120;
+  --ink:#ffffff; --ink-2:#c3c2b7; --muted:#898781;
+  --grid:#2c2c2a; --axis:#383835; --ring:rgba(255,255,255,0.10);
+  --good:#0ca30c; --warning:#fab219; --serious:#ec835a; --critical:#d03b3b;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--plane);color:var(--ink);
+  font-family:system-ui,-apple-system,"Segoe UI",sans-serif;font-size:14px;line-height:1.5}
+.wrap{max-width:1440px;margin:0 auto;padding:16px 20px 80px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;gap:14px;
+  padding:12px 0 16px;border-bottom:1px solid var(--grid);margin-bottom:18px}
+h1{font-size:19px;margin:0;letter-spacing:-.01em;font-weight:650}
+h2{font-size:12.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);
+  margin:32px 0 12px;font-weight:650}
+h3{font-size:14px;margin:0 0 4px;font-weight:620}
+.sub{color:var(--muted);font-size:12.5px}
+.sub b{color:var(--ink-2);font-weight:600}
+.card{background:var(--surface);border:1px solid var(--ring);border-radius:10px;padding:18px}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:1fr 1fr}
+.g21{grid-template-columns:1.35fr 1fr}
+@media(max-width:1000px){.g2,.g21{grid-template-columns:1fr}}
+
+/* -------- decisione in cima -------- */
+.hero{display:grid;grid-template-columns:230px 1fr 250px;gap:22px;align-items:center;
+  background:var(--surface);border:1px solid var(--ring);border-radius:12px;padding:20px 24px}
+@media(max-width:1000px){.hero{grid-template-columns:1fr}}
+.big{font-size:54px;font-weight:680;line-height:1;letter-spacing:-.03em}
+.lab{color:var(--muted);font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;margin-top:6px}
+.state-name{font-size:23px;font-weight:660;letter-spacing:-.015em}
+.chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--surface-2);
+  border:1px solid var(--ring);border-radius:999px;padding:3px 10px;font-size:12px;color:var(--ink-2)}
+.chip b{color:var(--ink);font-weight:620}
+.dot{width:9px;height:9px;border-radius:50%;flex:none}
+.sep{border-left:1px solid var(--grid);padding-left:22px}
+@media(max-width:1000px){.sep{border-left:0;padding-left:0;border-top:1px solid var(--grid);padding-top:16px}}
+
+/* -------- livelli di rottura -------- */
+.lvl{display:grid;grid-template-columns:190px 1fr;gap:14px;align-items:center;
+  padding:11px 0;border-bottom:1px solid var(--grid)}
+.lvl:last-child{border-bottom:0}
+.lvl .nm{font-size:13px}
+.lvl .nm b{display:block;color:var(--ink);font-weight:600}
+.lvl .nm span{color:var(--muted);font-size:11.5px;font-variant-numeric:tabular-nums}
+.rail{position:relative;height:38px}
+.rail .bar{position:absolute;left:0;right:0;top:16px;height:6px;background:var(--surface-2);border-radius:3px}
+.rail .zone{position:absolute;top:16px;height:6px;border-radius:3px}
+.mk{position:absolute;top:6px;width:2px;height:26px;border-radius:1px}
+.mk.now{width:3px;height:30px;top:4px;background:var(--ink)}
+.mklab{position:absolute;top:-2px;font-size:11px;font-variant-numeric:tabular-nums;
+  white-space:nowrap;transform:translateX(-50%)}
+.mklab.b{top:26px}
+
+/* -------- diff -------- */
+.ev{display:flex;align-items:center;gap:10px;padding:8px 11px;border-radius:8px;
+  background:var(--surface-2);border:1px solid var(--ring);margin-bottom:7px;font-size:13px}
+.ev .d{font-variant-numeric:tabular-nums;font-weight:620;margin-left:auto}
+.mini{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;
+  padding:5px 0;font-size:12.5px;border-bottom:1px solid var(--grid)}
+.mini:last-child{border-bottom:0}
+.mini .v{font-variant-numeric:tabular-nums;font-weight:600;min-width:46px;text-align:right}
+
+/* -------- tabelle -------- */
+table{width:100%;border-collapse:collapse;font-size:12.6px}
+th{text-align:right;padding:7px 9px;color:var(--muted);font-weight:600;font-size:10.5px;
+  text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--axis);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+td{padding:6px 9px;text-align:right;border-bottom:1px solid var(--grid);
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+tbody tr:hover{background:var(--surface-2)}
+tr.hi{background:rgba(57,135,229,.12);outline:1px solid var(--s1)}
+.nm-cell{color:var(--ink);font-weight:560}
+.tk{color:var(--muted);font-size:11px;margin-left:6px}
+.heat{border-radius:4px;padding:3px 7px;display:inline-block;min-width:54px;text-align:right}
+.scroll{overflow-x:auto;margin:0 -18px;padding:0 18px}
+
+/* -------- tab / dettagli -------- */
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.tab{background:var(--surface-2);border:1px solid var(--ring);color:var(--ink-2);
+  border-radius:7px;padding:5px 12px;font-size:12.5px;cursor:pointer;font-family:inherit}
+.tab[aria-selected="true"]{background:var(--s1);border-color:var(--s1);color:#fff;font-weight:600}
+.pane{display:none}.pane.on{display:block}
+details{background:var(--surface);border:1px solid var(--ring);border-radius:10px;
+  padding:0 18px;margin-bottom:10px}
+details[open]{padding-bottom:18px}
+summary{cursor:pointer;padding:14px 0;font-weight:600;font-size:13.5px;list-style:none;
+  display:flex;align-items:center;gap:9px}
+summary::-webkit-details-marker{display:none}
+summary:before{content:"▸";color:var(--muted);transition:transform .15s;display:inline-block}
+details[open] summary:before{transform:rotate(90deg)}
+summary em{font-style:normal;color:var(--muted);font-weight:450;font-size:12.5px}
+
+/* -------- pilastri -------- */
+.pillar{display:grid;grid-template-columns:145px 1fr 50px;gap:12px;align-items:center;
+  padding:6px 0;cursor:pointer;border-radius:6px}
+.pillar:hover{background:var(--surface-2)}
+.pillar .nm{font-size:12.8px;color:var(--ink-2)}
+.track{position:relative;height:15px;background:var(--surface-2);border-radius:3px;overflow:hidden}
+.track:before{content:"";position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--axis)}
+.fill{position:absolute;top:2px;bottom:2px;border-radius:0 4px 4px 0}
+.val{text-align:right;font-variant-numeric:tabular-nums;font-weight:620;font-size:12.8px}
+.drivers{display:none;grid-column:1/-1;padding:6px 0 10px 145px}
+.drivers.on{display:block}
+.drv{display:inline-flex;align-items:center;gap:6px;background:var(--surface-2);
+  border:1px solid var(--ring);border-radius:6px;padding:3px 9px;margin:3px 5px 3px 0;font-size:11.5px}
+.drv .z{font-variant-numeric:tabular-nums;font-weight:620}
+
+/* -------- grafici -------- */
+.chartbox{position:relative}
+svg{display:block;width:100%;overflow:visible}
+.gl{stroke:var(--grid);stroke-width:1}
+.axl{fill:var(--muted);font-size:10.5px;font-variant-numeric:tabular-nums}
+.tip{position:absolute;pointer-events:none;background:#000;border:1px solid var(--ring);
+  border-radius:7px;padding:8px 11px;font-size:12px;opacity:0;transition:opacity .1s;
+  z-index:40;white-space:nowrap;box-shadow:0 6px 22px rgba(0,0,0,.6)}
+.legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:10px;font-size:12px;color:var(--ink-2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.note{color:var(--muted);font-size:12px;margin-top:10px;max-width:80ch}
+.kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(126px,1fr));gap:9px}
+.kpi div{background:var(--surface-2);border:1px solid var(--ring);border-radius:8px;padding:9px 11px}
+.kpi .k{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.06em}
+.kpi .v{font-size:18px;font-weight:640;font-variant-numeric:tabular-nums;margin-top:2px}
+.tv{min-height:420px;background:var(--surface-2);border-radius:8px;overflow:hidden}
+.tv-tape{min-height:74px}
+.verdetto{border-left:3px solid;padding:12px 16px;border-radius:0 8px 8px 0;
+  background:var(--surface-2);margin-bottom:12px}
+.verdetto b{display:block;margin-bottom:3px}
+.foot{color:var(--muted);font-size:11.5px;margin-top:44px;padding-top:16px;
+  border-top:1px solid var(--grid);max-width:90ch}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header><h1>Market Regime Cockpit</h1><div class="sub" id="hdr"></div></header>
+
+<div class="tv tv-tape" id="tvtape"><div class="sub" style="padding:26px 18px">Caricamento del nastro TradingView…
+ se resta vuoto, la pagina è offline o un blocco-pubblicità sta intercettando il widget.</div></div>
+<div id="stale" style="margin-top:14px"></div>
+<div id="hero" style="margin-top:14px"></div>
+
+<h2>Livelli di rottura · cosa cambierebbe la view</h2>
+<div class="card">
+  <div id="lvlhead" class="sub" style="margin-bottom:14px"></div>
+  <div id="livelli"></div>
+  <p class="note">Ogni riga risponde alla domanda inversa: <b>a che valore, se ci arriva e ci resta,
+  questa variabile da sola farebbe cambiare stato al modello.</b> Calcolato per bisezione
+  rifacendo il conto completo con quella variabile spostata (le altre ferme), applicando lo shock
+  agli ultimi 10 giorni. Le variabili che si muovono insieme vengono spostate insieme:
+  alzare lo spread HY senza toccare i CCC leggerebbe come un miglioramento della qualità.</p>
+</div>
+
+<div class="grid g21" style="margin-top:14px">
+  <div class="card">
+    <h3>Cosa è cambiato</h3>
+    <div class="sub" id="diffdate" style="margin-bottom:12px"></div>
+    <div id="eventi"></div>
+    <div id="diffpil" style="margin-top:14px"></div>
+  </div>
+  <div class="card">
+    <h3>Estremi toccati oggi</h3>
+    <div class="sub" style="margin-bottom:10px">Strumenti al vertice o al fondo del proprio range a 5 anni</div>
+    <div id="estremi"></div>
+  </div>
+</div>
+
+<h2>Esposizione consigliata e suo track record</h2>
+<div class="card">
+  <div id="espo"></div>
+  <div class="grid g2" style="margin-top:18px">
+    <div><h3 style="font-size:12.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em">Curva di capitale</h3>
+      <div class="chartbox"><div id="eq"></div><div class="tip" id="tipe"></div></div>
+      <div class="legend" id="eqleg"></div></div>
+    <div><h3 style="font-size:12.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em">Confronto</h3>
+      <div class="scroll"><div id="statab"></div></div></div>
+  </div>
+  <div id="sottoper" style="margin-top:18px"></div>
+  <p class="note" id="espnota"></p>
+</div>
+
+<h2>Cosa il modello sa fare e cosa no</h2>
+<div class="card"><div id="valid"></div></div>
+
+<h2>Grafici</h2>
+<div class="card">
+  <div class="tabs" id="tvtabs" role="tablist"></div>
+  <div id="tvpanes"></div>
+  <p class="note">Grafici TradingView: richiedono connessione a internet e possono non caricarsi
+  se un blocco-pubblicità li intercetta.</p>
+</div>
+
+<div class="grid g21" style="margin-top:14px">
+  <div class="card">
+    <h3>I pilastri</h3>
+    <div class="sub" style="margin-bottom:10px">Clicca una barra per vedere cosa la sta spingendo</div>
+    <div id="pillars"></div>
+  </div>
+  <div class="card">
+    <h3>Quadrante macro</h3>
+    <div class="sub" style="margin-bottom:4px">Crescita contro inflazione, ultimi 24 mesi</div>
+    <div class="chartbox"><div id="quad"></div><div class="tip" id="tipq"></div></div>
+  </div>
+</div>
+
+<h2>Storia del regime</h2>
+<div class="card">
+  <div class="chartbox"><div id="hist"></div><div class="tip" id="tiph"></div></div>
+  <div class="legend" id="histleg"></div>
+</div>
+
+<h2>Dati di riferimento</h2>
+<details><summary>Panoramica dei mercati <em>· indici, settori, globale, tassi, credito, valute, materie prime, cripto</em></summary>
+  <div class="tabs" id="mkttabs" role="tablist"></div><div class="scroll"><div id="mktpanes"></div></div></details>
+<details><summary>Livelli macro <em>· 27 serie FRED con percentile storico</em></summary>
+  <div class="scroll"><div id="macro"></div></div></details>
+<details><summary>Rapporti cross-asset <em>· ampiezza, credito, propensione al rischio, stile</em></summary>
+  <div class="scroll"><div id="ratios"></div></div></details>
+<details><summary>Base rate storiche <em>· rendimenti condizionati al regime — leggerle con le note</em></summary>
+  <div class="scroll"><div id="br2d"></div></div></details>
+<details><summary>Episodi di allerta passati <em>· verifica che il modello riconosca 2000, 2008, 2020, 2022</em></summary>
+  <div class="scroll"><div id="epis"></div></div></details>
+
+<div class="foot" id="foot"></div>
+</div>
+
+<script id="payload" type="application/json">__PAYLOAD__</script>
+<script>
+const D = JSON.parse(document.getElementById('payload').textContent);
+const $ = s => document.querySelector(s);
+const el = (t,c,h)=>{const e=document.createElement(t); if(c)e.className=c; if(h!=null)e.innerHTML=h; return e;};
+const nf = (v,d=2)=> v==null||isNaN(v) ? '–' : (v>0?'+':'')+Number(v).toFixed(d);
+const n0 = (v,d=2)=> v==null||isNaN(v) ? '–' : Number(v).toFixed(d);
+const num = (v,d=2)=> v==null||isNaN(v) ? '–' : Number(v).toLocaleString('it-IT',{minimumFractionDigits:d,maximumFractionDigits:d});
+
+const STATO_COL = {
+  'RISK-ON PIENO':{c:'var(--good)',i:'●●',o:1}, 'COSTRUTTIVO':{c:'var(--good)',i:'●',o:.55},
+  'NEUTRALE / LATERALE':{c:'var(--muted)',i:'■',o:1}, 'DIFENSIVO':{c:'var(--serious)',i:'▲',o:1},
+  'STRESS / RISK-OFF':{c:'var(--critical)',i:'▲▲',o:1}, 'DATI INSUFFICIENTI':{c:'var(--muted)',i:'·',o:.4}};
+const DIR_ICO={'IN MIGLIORAMENTO':'↑','IN DETERIORAMENTO':'↓','STABILE':'→'};
+const sc = s => (STATO_COL[s]||STATO_COL['DATI INSUFFICIENTI']).c;
+const so = s => (STATO_COL[s]||STATO_COL['DATI INSUFFICIENTI']).o;
+
+function heat(v,scala){ if(v==null||isNaN(v)) return 'transparent';
+  const t=Math.max(-1,Math.min(1,v/scala)), a=Math.abs(t);
+  if(a<.06) return 'transparent';
+  return (t>0?'rgba(57,135,229,':'rgba(208,59,59,')+(0.14+a*0.5).toFixed(3)+')';}
+const ch=(v,s,d=2)=> v==null||isNaN(v) ? '<td>–</td>'
+  : `<td><span class="heat" style="background:${heat(v,s)}">${nf(v,d)}</span></td>`;
+
+$('#hdr').innerHTML = `dati al <b>${D.meta.ultimo_dato}</b> · ${D.meta.strumenti} strumenti ·
+  ${D.meta.serie_macro} serie macro · storico dal ${D.meta.storico_da} ·
+  <span style="color:var(--muted)">generato ${D.meta.generato}</span>`;
+
+/* ---------- serie obsolete ---------- */
+(function(){const o=D.meta.serie_obsolete||[]; if(!o.length) return;
+  $('#stale').innerHTML=`<div class="card" style="border-color:var(--warning)">
+    <h3 style="color:var(--warning)">⚠ ${o.length} serie non aggiornate dalla fonte</h3>
+    <div class="sub" style="margin-bottom:8px">Escluse automaticamente dal calcolo dopo 5 giorni di fermo:
+    i pilastri che le usavano stanno lavorando senza.</div>
+    ${o.map(x=>`<span class="drv"><b>${x.nome}</b> <span class="tk">${x.ticker}</span>
+      dal ${x.ultimo} <span class="z" style="color:var(--warning)">${x.giorni_fermo} gg</span></span>`).join('')}</div>`;})();
+
+/* ---------- HERO: stato + esposizione ---------- */
+(function(){
+  const t=D.snapshot.tattico, a=D.snapshot.allocativo, f=D.snapshot.fiducia;
+  const s=(D.strategia||{}).oggi||{}; const col=sc(t.stato);
+  let chips=`<span class="chip">${DIR_ICO[t.direzione]||''} ${t.direzione}</span>
+    <span class="chip">da <b>${t.giorni_nello_stato}</b> giorni</span>
+    <span class="chip">21g <b>${nf(t.var_21g,1)}</b></span>`;
+  if(f) chips+=`<span class="chip">consenso <b>${f.consenso}%</b></span>`;
+  if(a) chips+=`<span class="chip"><span class="dot" style="background:var(--s2)"></span>${a.quadrante}</span>`;
+  const acc=(D.validazione||{}).accordo||{};
+  if(acc.concordanza_ != null || acc['concordanza_%']!=null)
+    chips+=`<span class="chip">accordo col Jump Model <b>${acc['concordanza_%']}%</b></span>`;
+  const stor=(s.storia||[]).map(x=>`${x.quando.replace(' fa','')} <b>${x['esposizione_%']}%</b>`).join(' · ');
+  $('#hero').innerHTML=`<div class="hero">
+    <div style="text-align:center"><div class="big" style="color:${col}">${nf(t.punteggio,0)}</div>
+      <div class="lab">punteggio tattico</div></div>
+    <div><div class="state-name" style="color:${col}">${(STATO_COL[t.stato]||{}).i} ${t.stato} · ${t.direzione}</div>
+      <div class="sub" style="color:var(--ink-2);max-width:60ch;margin-top:4px">${t.descrizione}</div>
+      <div class="chips">${chips}</div></div>
+    <div class="sep" style="text-align:center">
+      <div class="big" style="color:var(--s1);font-size:44px">${s['esposizione_%']!=null?s['esposizione_%']+'%':'–'}</div>
+      <div class="lab">esposizione azionaria</div>
+      <div class="sub" style="margin-top:8px">vol attesa <b>${s['vol_attesa_%']||'–'}%</b> · obiettivo ${s['target_vol_%']||12}%</div>
+      <div class="sub" style="margin-top:4px;font-size:11.5px">${stor}</div></div></div>`;
+})();
+
+/* ---------- LIVELLI DI ROTTURA ---------- */
+(function(){
+  const T=D.trigger||{}; const L=T.livelli||[];
+  if(!L.length){$('#livelli').innerHTML='<div class="sub">nessun livello calcolabile</div>';return;}
+  $('#lvlhead').innerHTML=`Stato attuale <b style="color:${sc(T.stato)}">${T.stato}</b>
+    (punteggio grezzo ${nf(T.punteggio_grezzo,1)}).
+    Scende a <b style="color:${sc(T.stato_giu)}">${T.stato_giu||'–'}</b> sotto ${T.soglia_giu},
+    sale a <b style="color:${sc(T.stato_su)}">${T.stato_su||'–'}</b> sopra ${T.soglia_su}.`;
+  $('#livelli').innerHTML=L.map(r=>{
+    const d=r.decimali, v0=r.valore_oggi;
+    const cand=[v0]; if(r.giu) cand.push(r.giu.soglia); if(r.su) cand.push(r.su.soglia);
+    let lo=Math.min(...cand), hi=Math.max(...cand); const pad=(hi-lo)*0.18||Math.abs(v0)*.05||1;
+    lo-=pad; hi+=pad; const P=x=>((x-lo)/(hi-lo))*100;
+    // la zona si estende SEMPRE allontanandosi dal valore odierno, oltre la soglia:
+    // per le variabili invertite (spread, VIX, NFCI) il miglioramento sta a sinistra
+    const zona=(soglia,colore)=>{const pp=P(soglia);
+      return soglia<v0 ? `<div class="zone" style="left:0;width:${pp}%;background:${colore};opacity:.30"></div>`
+                       : `<div class="zone" style="left:${pp}%;right:0;background:${colore};opacity:.30"></div>`;};
+    let zone='';
+    if(r.giu) zone+=zona(r.giu.soglia, sc(T.stato_giu));
+    if(r.su)  zone+=zona(r.su.soglia,  sc(T.stato_su));
+    let mk='';
+    if(r.giu) mk+=`<div class="mk" style="left:${P(r.giu.soglia)}%;background:${sc(T.stato_giu)}"></div>
+      <div class="mklab b" style="left:${P(r.giu.soglia)}%;color:${sc(T.stato_giu)}">${num(r.giu.soglia,d)} <span style="color:var(--muted)">(${nf(r.giu['distanza_%'],1)}%)</span></div>`;
+    if(r.su) mk+=`<div class="mk" style="left:${P(r.su.soglia)}%;background:${sc(T.stato_su)}"></div>
+      <div class="mklab b" style="left:${P(r.su.soglia)}%;color:${sc(T.stato_su)}">${num(r.su.soglia,d)} <span style="color:var(--muted)">(${nf(r.su['distanza_%'],1)}%)</span></div>`;
+    return `<div class="lvl"><div class="nm"><b>${r.nome}</b>
+      <span>oggi ${num(v0,d)}${r.unita==='%'?'%':''} · percentile ${r.pct_5a} a 5 anni</span></div>
+      <div class="rail"><div class="bar"></div>${zone}${mk}
+        <div class="mk now" style="left:${P(v0)}%"></div>
+        <div class="mklab" style="left:${P(v0)}%;color:var(--ink);font-weight:620">${num(v0,d)}</div>
+      </div></div>`;}).join('');
+})();
+
+/* ---------- DIFF ---------- */
+(function(){
+  const df=D.diff||{}; if(!df.data){$('#eventi').innerHTML='<div class="sub">nessun confronto disponibile</div>';return;}
+  $('#diffdate').textContent=`${df.data_precedente} → ${df.data}`;
+  const ev=df.eventi||[];
+  $('#eventi').innerHTML = ev.length ? ev.map(e=>{
+    const c = e.rilievo>=4?'var(--warning)' : e.rilievo>=2?'var(--s1)' : 'var(--muted)';
+    return `<div class="ev"><span class="dot" style="background:${c}"></span>${e.testo}
+      ${e.delta!=null?`<span class="d" style="color:${e.delta>=0?'var(--s1)':'var(--critical)'}">${nf(e.delta,1)}</span>`:''}</div>`;
+  }).join('') : '<div class="sub">Nessun movimento rilevante: il quadro è identico a ieri.</div>';
+  $('#diffpil').innerHTML='<div class="sub" style="margin-bottom:6px">Movimento dei pilastri</div>'+
+    (df.pilastri||[]).map(p=>`<div class="mini"><span>${p.nome}</span>
+      <span class="v" style="color:${p.delta_1g>=0?'var(--s1)':'var(--critical)'}">${nf(p.delta_1g,1)}</span>
+      <span class="v" style="color:var(--muted)">${p.delta_5g!=null?nf(p.delta_5g,1)+' (5g)':''}</span></div>`).join('');
+  const es=df.estremi||[];
+  $('#estremi').innerHTML = es.length ? es.map(x=>{
+    const alto=x.percentile>=99;
+    return `<div class="mini"><span>${x.nuovo?'<b style="color:var(--warning)">NUOVO</b> ':''}${x.nome}
+      <span class="tk">${x.ticker}</span></span>
+      <span class="v">${num(x.valore,2)}</span>
+      <span class="v" style="color:${alto?'var(--s1)':'var(--critical)'}">${alto?'max':'min'} 5a</span></div>`;
+  }).join('') : '<div class="sub">Nessuno strumento agli estremi.</div>';
+})();
+
+/* ---------- ESPOSIZIONE + TRACK RECORD ---------- */
+(function(){
+  const S=D.strategia||{}; if(!S.oggi){$('#espo').innerHTML='<div class="sub">strategia non calcolata</div>';return;}
+  const o=S.oggi, bh=S.buy_hold, comb=(S.varianti||{}).combinata||{};
+  $('#espo').innerHTML=`<div class="kpi">
+    <div><div class="k">esposizione oggi</div><div class="v" style="color:var(--s1)">${o['esposizione_%']}%</div></div>
+    <div><div class="k">vol attesa 3 mesi</div><div class="v">${o['vol_attesa_%']}%</div></div>
+    <div><div class="k">da regime / trailing</div><div class="v" style="font-size:15px">${o['vol_da_regime_%']}% · ${o['vol_trailing_%']}%</div></div>
+    <div><div class="k">Sharpe della regola</div><div class="v">${comb.sharpe} <span style="font-size:12px;color:var(--muted)">vs ${bh.sharpe}</span></div></div>
+    <div><div class="k">perdita max storica</div><div class="v">${comb['max_dd_%']}% <span style="font-size:12px;color:var(--muted)">vs ${bh['max_dd_%']}%</span></div></div>
+    <div><div class="k">campione</div><div class="v" style="font-size:15px">${S.campione.da.slice(0,4)}–${S.campione.a.slice(0,4)}</div></div></div>`;
+
+  const righe=[bh, ...Object.values(S.varianti||{})];
+  let h=`<table><thead><tr><th>Strategia</th><th>CAGR</th><th>Vol</th><th>Sharpe</th><th>Sortino</th>
+    <th>Perdita max</th><th>Calmar</th><th>Anno peggiore</th><th>Espos.</th><th>Turnover</th></tr></thead><tbody>`;
+  righe.forEach(v=>{const on=v.nome && v.nome.startsWith('Regime + ');
+    h+=`<tr class="${on?'hi':''}"><td class="nm-cell">${v.nome}${on?' <b style="color:var(--s1)">← in uso</b>':''}</td>
+      <td>${n0(v['cagr_%'],2)}%</td><td>${n0(v['vol_%'],2)}%</td><td><b>${v.sharpe}</b></td><td>${v.sortino}</td>
+      <td>${n0(v['max_dd_%'],1)}%</td><td>${v.calmar}</td><td>${n0(v['anno_peggiore_%'],1)}%</td>
+      <td>${v['esposizione_media_%']}%</td><td>${v['turnover_annuo_%']}%</td></tr>`;});
+  $('#statab').innerHTML=h+'</tbody></table>';
+
+  const sp=S.sottoperiodi||[];
+  if(sp.length){
+    let t=`<div class="sub" style="margin-bottom:6px">Tenuta per sottoperiodo — Sharpe e perdita massima, strategia contro buy &amp; hold</div>
+      <div class="scroll"><table><thead><tr><th>Periodo</th><th>Sharpe strategia</th><th>Sharpe buy &amp; hold</th>
+      <th>Perdita max strategia</th><th>Perdita max buy &amp; hold</th><th>Differenza perdita</th></tr></thead><tbody>`;
+    sp.forEach(p=>{const dd=(p['max_dd_%']||0)-(p['max_dd_bh_%']||0);
+      t+=`<tr><td class="nm-cell">${p.periodo}</td><td>${nf(p.sharpe,2)}</td><td style="color:var(--muted)">${nf(p.sharpe_bh,2)}</td>
+        <td>${n0(p['max_dd_%'],1)}%</td><td style="color:var(--muted)">${n0(p['max_dd_bh_%'],1)}%</td>
+        ${ch(dd,20,1)}</tr>`;});
+    $('#sottoper').innerHTML=t+'</tbody></table></div>';
+  }
+  const p=S.parametri||{};
+  $('#espnota').innerHTML=`<b>La regola.</b> Esposizione = ${p['vol_obiettivo_%']}% diviso la volatilità attesa,
+   con leva massima ${p.leva_max}× e ribilancio solo oltre ${p['banda_ribilancio_%']} punti di scostamento;
+   costi ${p.costo_bp} punti base per unità di turnover. La volatilità attesa è la media fra quella tipica
+   del regime attuale e quella realizzata a 63 giorni: la stima del regime usa una finestra espansiva
+   e solo osservazioni già chiuse, quindi non conosce il futuro.
+   <br><br><b>Cosa promette e cosa no.</b> Non aumenta il rendimento — anzi il CAGR è
+   <b>${(comb['cagr_%']-bh['cagr_%']).toFixed(2)} punti</b> più basso del buy &amp; hold.
+   Riduce il rischio: volatilità ${(100*(1-comb['vol_%']/bh['vol_%'])).toFixed(0)}% più bassa e perdita massima
+   di ${Math.abs(comb['max_dd_%'])}% invece di ${Math.abs(bh['max_dd_%'])}%.
+   Il regime da solo fa peggio della sola vol realizzata: serve in combinazione, dove migliora
+   la previsione di volatilità e taglia il turnover.`;
+})();
+
+/* ---------- VALIDAZIONE ---------- */
+(function(){
+  const V=D.validazione||{}; if(!V.rendimenti){$('#valid').innerHTML='<div class="sub">non disponibile</div>';return;}
+  const R=V.rendimenti, VO=V.volatilita, J=V.jump_model||{}, A=V.accordo||{};
+  let h=`<div class="verdetto" style="border-color:var(--critical)">
+    <b style="color:var(--critical)">✗ Non predice i rendimenti</b>${R.verdetto}</div>
+    <div class="verdetto" style="border-color:var(--good)">
+    <b style="color:var(--good)">✓ Predice la volatilità</b>${VO.verdetto}</div>`;
+  h+=`<div class="grid g2" style="margin-top:14px"><div><div class="sub" style="margin-bottom:6px">Volatilità attesa a 3 mesi per stato, con intervallo di confidenza al 95%</div>
+    <table><thead><tr><th>Stato</th><th>Giorni</th><th>Vol attesa</th><th>IC 95%</th><th></th></tr></thead><tbody>`;
+  VO.per_stato.slice().sort((a,b)=>b['vol_attesa_%']-a['vol_attesa_%']).forEach(r=>{
+    h+=`<tr><td class="nm-cell"><span class="dot" style="background:${sc(r.stato)};opacity:${so(r.stato)};display:inline-block;margin-right:7px"></span>${r.stato}</td>
+      <td style="color:var(--muted)">${r.n}</td><td><b>${n0(r['vol_attesa_%'],1)}%</b></td>
+      <td style="color:var(--muted)">${n0(r['ic_basso_%'],1)}–${n0(r['ic_alto_%'],1)}%</td>
+      <td style="color:${r.significativo?'var(--good)':'var(--muted)'}">${r.significativo?'significativo':'no'}</td></tr>`;});
+  h+=`</tbody></table></div><div><div class="sub" style="margin-bottom:6px">Correlazione di rango fra punteggio e rendimento futuro</div>
+    <table><thead><tr><th>Orizzonte</th><th>IC di Spearman</th><th>Quintili del punteggio (dal peggiore al migliore)</th></tr></thead><tbody>`;
+  Object.entries(R.information_coefficient).forEach(([k,v])=>{
+    h+=`<tr><td class="nm-cell">${k}</td><td><b>${nf(v.spearman,3)}</b></td>
+      <td style="color:var(--ink-2)">${v['quintili_%'].map(x=>nf(x,1)+'%').join(' · ')}</td></tr>`;});
+  h+='</tbody></table>';
+  if(J.stati){
+    h+=`<div class="sub" style="margin:16px 0 6px">Jump Model statistico — classificatore indipendente, addestrato in walk-forward
+      (rifit ogni anno, classificazione solo sull'anno successivo). ${J.cambi} cambi di regime dal ${J.da}.</div>
+      <table><thead><tr><th>Regime</th><th>Giorni</th><th>Rend. 3 mesi</th><th>IC 95%</th><th>Vol attesa</th></tr></thead><tbody>`;
+    J.stati.forEach(r=>{h+=`<tr><td class="nm-cell">${r.stato}</td><td style="color:var(--muted)">${r.n}</td>
+      <td>${nf(r['rend_3m_%'],2)}%</td><td style="color:var(--muted)">${nf(r['ic_basso_%'],2)}–${nf(r['ic_alto_%'],2)}%</td>
+      <td><b>${n0(r['vol_attesa_%'],1)}%</b></td></tr>`;});
+    h+='</tbody></table>';
+  }
+  h+='</div></div>';
+  if(A['concordanza_%']!=null)
+    h+=`<p class="note"><b>Secondo parere.</b> Il Jump Model — che non sa nulla di spread di credito,
+      ampiezza o macro, e guarda solo rendimenti e deviazione al ribasso — concorda con il composito a regole
+      nel <b>${A['concordanza_%']}%</b> delle settimane su quando stare difensivi. Due strade indipendenti
+      che arrivano vicine: è la conferma più forte disponibile, e conferma la stessa cosa —
+      il rischio si vede arrivare, la direzione no.</p>`;
+  $('#valid').innerHTML=h;
+})();
+
+/* ---------- TRADINGVIEW ---------- */
+(function(){
+  function tv(box, file, cfg){
+    const d=el('div','tradingview-widget-container');
+    d.innerHTML='<div class="tradingview-widget-container__widget"></div>';
+    const s=document.createElement('script');
+    s.src=`https://s3.tradingview.com/external-embedding/embed-widget-${file}.js`;
+    s.async=true; s.type='text/javascript'; s.innerHTML=JSON.stringify(cfg);
+    d.appendChild(s); box.appendChild(d);
+  }
+  $('#tvtape').innerHTML='';
+  tv($('#tvtape'),'ticker-tape',{symbols:[
+    {proName:'FOREXCOM:SPXUSD',title:'S&P 500'},{proName:'FOREXCOM:NSXUSD',title:'Nasdaq 100'},
+    {proName:'TVC:VIX',title:'VIX'},{proName:'TVC:US10Y',title:'UST 10Y'},
+    {proName:'TVC:DXY',title:'Dollaro'},{proName:'TVC:GOLD',title:'Oro'},
+    {proName:'TVC:USOIL',title:'WTI'},{proName:'BITSTAMP:BTCUSD',title:'Bitcoin'},
+    {proName:'BITSTAMP:ETHUSD',title:'Ethereum'}],
+    showSymbolLogo:true,isTransparent:true,displayMode:'adaptive',colorTheme:'dark',locale:'it'});
+
+  const T=[
+    ['Grafico avanzato','advanced-chart',{autosize:true,symbol:'SP:SPX',interval:'D',timezone:'Europe/Rome',
+      theme:'dark',style:'1',locale:'it',hide_side_toolbar:false,allow_symbol_change:true,
+      studies:['STD;SMA','STD;RSI'],support_host:'https://www.tradingview.com'},520],
+    ['Mappa dei settori','stock-heatmap',{exchanges:[],dataSource:'SPX500',grouping:'sector',
+      blockSize:'market_cap_basic',blockColor:'change',locale:'it',symbolUrl:'',colorTheme:'dark',
+      hasTopBar:true,isDataSetEnabled:true,isZoomEnabled:true,hasSymbolTooltip:true,width:'100%',height:520},520],
+    ['Calendario economico','events',{colorTheme:'dark',isTransparent:true,locale:'it',
+      countryFilter:'us,eu,it,gb,jp,cn',importanceFilter:'0,1',width:'100%',height:520},520],
+    ['Panoramica mercati','market-overview',{colorTheme:'dark',dateRange:'3M',showChart:true,locale:'it',
+      isTransparent:true,showSymbolLogo:true,width:'100%',height:520,
+      tabs:[{title:'Indici',symbols:[{s:'FOREXCOM:SPXUSD',d:'S&P 500'},{s:'FOREXCOM:NSXUSD',d:'Nasdaq 100'},
+        {s:'INDEX:DEU40',d:'DAX'},{s:'FOREXCOM:UKXGBP',d:'FTSE 100'},{s:'INDEX:NKY',d:'Nikkei'},{s:'INDEX:HSI',d:'Hang Seng'}]},
+        {title:'Materie prime',symbols:[{s:'TVC:GOLD'},{s:'TVC:SILVER'},{s:'COMEX:HG1!',d:'Rame'},{s:'TVC:USOIL'},{s:'NYMEX:NG1!'}]},
+        {title:'Tassi e valute',symbols:[{s:'TVC:US10Y'},{s:'TVC:US02Y'},{s:'TVC:DXY'},{s:'FX:EURUSD'},{s:'FX:USDJPY'}]}]},520],
+  ];
+  const tabs=$('#tvtabs'), panes=$('#tvpanes');
+  T.forEach(([nome,file,cfg,h],i)=>{
+    const b=el('button','tab',nome); b.setAttribute('role','tab');
+    b.setAttribute('aria-selected', i===0?'true':'false'); b.dataset.i=i;
+    const p=el('div','pane'+(i===0?' on':'')); p.id='tvp-'+i;
+    const box=el('div','tv'); box.style.height=h+'px'; p.appendChild(box);
+    tabs.appendChild(b); panes.appendChild(p); tv(box,file,cfg);
+  });
+  tabs.onclick=e=>{const b=e.target.closest('.tab'); if(!b)return;
+    tabs.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected','false'));
+    b.setAttribute('aria-selected','true');
+    panes.querySelectorAll('.pane').forEach(p=>p.classList.remove('on'));
+    $('#tvp-'+b.dataset.i).classList.add('on');};
+})();
+
+/* ---------- PILASTRI ---------- */
+(function(){
+  const nomi={tendenza:'Tendenza',volatilita:'Volatilità',credito:'Credito e liquidità',
+    propensione_rischio:'Propensione al rischio',crescita:'Crescita (macro)',inflazione:'Inflazione (macro)'};
+  const box=$('#pillars');
+  Object.entries(D.snapshot.pilastri).forEach(([k,v])=>{ if(v==null) return;
+    const w=Math.min(50,Math.abs(v)/2), col=v>=0?'var(--s1)':'var(--critical)';
+    const row=el('div','pillar');
+    row.innerHTML=`<div class="nm">${nomi[k]||k}</div><div class="track"><div class="fill" style="background:${col};
+      ${v>=0?`left:50%;width:${w}%`:`right:50%;width:${w}%;border-radius:4px 0 0 4px`}"></div></div>
+      <div class="val" style="color:${col}">${nf(v,0)}</div>`;
+    const drv=el('div','drivers'); const items=D.pilastri_dettaglio[k]||[];
+    drv.innerHTML=items.length?items.map(d=>`<span class="drv"><span class="dot" style="background:${d.z>=0?'var(--s1)':'var(--critical)'}"></span>
+      ${d.nome} <span class="z" style="color:${d.z>=0?'var(--s1)':'var(--critical)'}">${nf(d.z,2)}</span></span>`).join('')
+      :'<span class="sub">nessun dettaglio</span>';
+    row.onclick=()=>drv.classList.toggle('on'); box.appendChild(row); box.appendChild(drv);});
+})();
+
+/* ---------- QUADRANTE ---------- */
+(function(){
+  const tr=D.traiettoria_macro; if(!tr||!tr.length) return;
+  const W=500,H=360,P=40, box=$('#quad'), tip=$('#tipq'), lim=70;
+  const x=v=>P+(v+lim)/(2*lim)*(W-2*P), y=v=>H-P-(v+lim)/(2*lim)*(H-2*P);
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Quadrante crescita inflazione">
+    <rect x="${P}" y="${P}" width="${W-2*P}" height="${H-2*P}" fill="none" stroke="var(--axis)"/>
+    <line class="gl" x1="${x(0)}" y1="${P}" x2="${x(0)}" y2="${H-P}"/>
+    <line class="gl" x1="${P}" y1="${y(0)}" x2="${W-P}" y2="${y(0)}"/>`;
+  [['REFLAZIONE',lim/2,lim/2,'var(--warning)'],['GOLDILOCKS',lim/2,-lim/2,'var(--good)'],
+   ['STAGFLAZIONE',-lim/2,lim/2,'var(--critical)'],['CONTRAZIONE',-lim/2,-lim/2,'var(--s1)']]
+   .forEach(([n,gx,gy,c])=>s+=`<text class="axl" x="${x(gx)}" y="${y(gy)}" text-anchor="middle" fill="${c}" style="font-size:11px;font-weight:600;opacity:.85">${n}</text>`);
+  s+=`<text class="axl" x="${W/2}" y="${H-8}" text-anchor="middle">spinta alla crescita →</text>
+    <text class="axl" x="11" y="${H/2}" text-anchor="middle" transform="rotate(-90 11 ${H/2})">spinta all'inflazione →</text>
+    <polyline points="${tr.map(p=>x(p.g)+','+y(p.i)).join(' ')}" fill="none" stroke="var(--muted)" stroke-width="2" opacity=".5"/>`;
+  tr.forEach((p,i)=>{const last=i===tr.length-1;
+    s+=`<circle cx="${x(p.g)}" cy="${y(p.i)}" r="${last?7:4}" fill="${last?'var(--s2)':'var(--muted)'}"
+      stroke="var(--surface)" stroke-width="2" opacity="${last?1:.3+.7*i/tr.length}" data-i="${i}" style="cursor:pointer"/>`;});
+  const l=tr[tr.length-1];
+  s+=`<text class="axl" x="${x(l.g)+11}" y="${y(l.i)+4}" fill="var(--ink)" style="font-weight:600">oggi</text></svg>`;
+  box.innerHTML=s;
+  box.querySelectorAll('circle').forEach(c=>{
+    c.onmouseenter=()=>{const p=tr[+c.dataset.i], b=box.getBoundingClientRect(), r=c.getBoundingClientRect();
+      tip.innerHTML=`<b>${p.d}</b><br>crescita ${nf(p.g,1)} · inflazione ${nf(p.i,1)}`;
+      tip.style.left=(r.left-b.left+14)+'px'; tip.style.top=(r.top-b.top-10)+'px'; tip.style.opacity=1;};
+    c.onmouseleave=()=>tip.style.opacity=0;});
+})();
+
+/* ---------- CURVA DI CAPITALE ---------- */
+(function(){
+  const e=(D.strategia||{}).equity||[]; if(!e.length) return;
+  const W=680,H=300,P=48, box=$('#eq'), tip=$('#tipe'), n=e.length;
+  const vals=e.flatMap(p=>[p.s,p.b]), lo=Math.min(...vals), hi=Math.max(...vals);
+  const lg=v=>Math.log(Math.max(v,1e-6)), L0=lg(lo), L1=lg(hi);
+  const x=i=>P+i/(n-1)*(W-P-14), y=v=>H-30-((lg(v)-L0)/(L1-L0))*(H-56);
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Curva di capitale strategia contro buy and hold">`;
+  [0.5,1,2,4].filter(v=>v>=lo&&v<=hi).forEach(v=>s+=`<line class="gl" x1="${P}" y1="${y(v)}" x2="${W-14}" y2="${y(v)}" stroke-dasharray="3 4"/>
+    <text class="axl" x="${P-6}" y="${y(v)+3}" text-anchor="end">${v}×</text>`);
+  s+=`<polyline points="${e.map((p,i)=>x(i)+','+y(p.b)).join(' ')}" fill="none" stroke="var(--muted)" stroke-width="2"/>`;
+  s+=`<polyline points="${e.map((p,i)=>x(i)+','+y(p.s)).join(' ')}" fill="none" stroke="var(--s1)" stroke-width="2"/>`;
+  [0,Math.floor(n/3),Math.floor(2*n/3),n-1].forEach(i=>
+    s+=`<text class="axl" x="${x(i)}" y="${H-8}" text-anchor="middle">${e[i].d.slice(0,7)}</text>`);
+  s+=`<line id="che" x1="0" y1="8" x2="0" y2="${H-30}" stroke="var(--ink)" stroke-width="1" opacity="0"/>
+    <rect x="${P}" y="0" width="${W-P-14}" height="${H-24}" fill="transparent" id="hite"/></svg>`;
+  box.innerHTML=s;
+  const svg=box.querySelector('svg'), che=box.querySelector('#che');
+  box.querySelector('#hite').onmousemove=ev=>{
+    const b=svg.getBoundingClientRect(); let i=Math.round(((ev.clientX-b.left)/b.width*W-P)/(W-P-14)*(n-1));
+    i=Math.max(0,Math.min(n-1,i)); const p=e[i];
+    che.setAttribute('x1',x(i)); che.setAttribute('x2',x(i)); che.setAttribute('opacity','.5');
+    tip.innerHTML=`<b>${p.d}</b><br><span style="color:var(--s1)">■</span> strategia ${p.s.toFixed(2)}×<br>
+      <span style="color:var(--muted)">■</span> buy &amp; hold ${p.b.toFixed(2)}×`;
+    const bb=box.getBoundingClientRect();
+    tip.style.left=Math.min(bb.width-165,ev.clientX-bb.left+14)+'px';
+    tip.style.top=(ev.clientY-bb.top-60)+'px'; tip.style.opacity=1;};
+  box.querySelector('#hite').onmouseleave=()=>{tip.style.opacity=0;che.setAttribute('opacity','0');};
+  $('#eqleg').innerHTML=`<span><span style="width:16px;height:2px;background:var(--s1);display:inline-block"></span>Regime + trailing</span>
+    <span><span style="width:16px;height:2px;background:var(--muted);display:inline-block"></span>Buy &amp; hold</span>
+    <span style="color:var(--muted)">scala logaritmica</span>`;
+})();
+
+/* ---------- STORIA DEL REGIME ---------- */
+(function(){
+  const d=D.storia; if(!d||!d.length) return;
+  const W=1360,H1=180,H2=140,P=48,GAP=24, box=$('#hist'), tip=$('#tiph'), n=d.length;
+  const x=i=>P+i/(n-1)*(W-P-20), ys=v=>H1-P/2-((v+100)/200)*(H1-P);
+  const px=d.map(p=>p.spx), pMin=Math.min(...px), pMax=Math.max(...px);
+  const lg=v=>Math.log(v), ypl=v=>H1+GAP+H2-P/2-((lg(v)-lg(pMin))/(lg(pMax)-lg(pMin)))*(H2-P/2);
+  let s=`<svg viewBox="0 0 ${W} ${H1+GAP+H2}" role="img" aria-label="Punteggio del regime e S&P 500 nel tempo">`;
+  [-45,-15,15,45].forEach(v=>s+=`<line class="gl" x1="${P}" y1="${ys(v)}" x2="${W-20}" y2="${ys(v)}" stroke-dasharray="3 4"/>
+    <text class="axl" x="${P-6}" y="${ys(v)+3}" text-anchor="end">${v}</text>`);
+  s+=`<line x1="${P}" y1="${ys(0)}" x2="${W-20}" y2="${ys(0)}" stroke="var(--axis)"/>`;
+  const bw=Math.max(1,(W-P-20)/n);
+  d.forEach((p,i)=>{const y0=ys(0),y1=ys(p.s);
+    s+=`<rect x="${x(i)-bw/2}" y="${Math.min(y0,y1)}" width="${bw}" height="${Math.abs(y1-y0)||1}"
+      fill="${sc(p.st)}" opacity="${so(p.st)*.9}"/>`;});
+  s+=`<text class="axl" x="${P}" y="12">punteggio tattico, colore = stato</text>
+    <polyline points="${d.map((p,i)=>x(i)+','+ypl(p.spx)).join(' ')}" fill="none" stroke="var(--ink-2)" stroke-width="2"/>
+    <text class="axl" x="${P}" y="${H1+GAP+10}">S&amp;P 500 (scala logaritmica)</text>`;
+  [0,Math.floor(n/4),Math.floor(n/2),Math.floor(3*n/4),n-1].forEach(i=>
+    s+=`<text class="axl" x="${x(i)}" y="${H1+GAP+H2-6}" text-anchor="middle">${d[i].d.slice(0,7)}</text>`);
+  s+=`<line id="ch" x1="0" y1="0" x2="0" y2="${H1+GAP+H2-P/2}" stroke="var(--ink)" stroke-width="1" opacity="0"/>
+    <rect x="${P}" y="0" width="${W-P-20}" height="${H1+GAP+H2}" fill="transparent" id="hit"/></svg>`;
+  box.innerHTML=s;
+  const svg=box.querySelector('svg'), ch2=box.querySelector('#ch');
+  box.querySelector('#hit').onmousemove=e=>{
+    const b=svg.getBoundingClientRect(); let i=Math.round(((e.clientX-b.left)/b.width*W-P)/(W-P-20)*(n-1));
+    i=Math.max(0,Math.min(n-1,i)); const p=d[i];
+    ch2.setAttribute('x1',x(i)); ch2.setAttribute('x2',x(i)); ch2.setAttribute('opacity','.5');
+    tip.innerHTML=`<b>${p.d}</b><br>punteggio ${nf(p.s,1)}<br><span style="color:${sc(p.st)}">■</span> ${p.st}<br>S&amp;P ${p.spx.toLocaleString('it-IT')}`;
+    const bb=box.getBoundingClientRect();
+    tip.style.left=Math.min(bb.width-190,e.clientX-bb.left+14)+'px';
+    tip.style.top=(e.clientY-bb.top-70)+'px'; tip.style.opacity=1;};
+  box.querySelector('#hit').onmouseleave=()=>{tip.style.opacity=0;ch2.setAttribute('opacity','0');};
+  $('#histleg').innerHTML=Object.keys(STATO_COL).filter(k=>k!=='DATI INSUFFICIENTI')
+    .map(k=>`<span><span class="dot" style="background:${STATO_COL[k].c};opacity:${STATO_COL[k].o}"></span>${k}</span>`).join('')+
+    `<span><span style="width:16px;height:2px;background:var(--ink-2);display:inline-block"></span>S&amp;P 500</span>`;
+})();
+
+/* ---------- MERCATI ---------- */
+(function(){
+  const nomi={indici_usa:'Indici USA',settori:'Settori USA',globale:'Globale',tassi:'Tassi',
+    credito:'Credito e bond',volatilita:'Volatilità',valute:'Valute',materie_prime:'Materie prime',cripto:'Cripto'};
+  const tabs=$('#mkttabs'), panes=$('#mktpanes'); let first=true;
+  Object.entries(D.mercati).forEach(([k,rows])=>{ if(!rows.length) return;
+    const b=el('button','tab',nomi[k]||k); b.setAttribute('role','tab');
+    b.setAttribute('aria-selected',first?'true':'false'); b.dataset.k=k;
+    const p=el('div','pane'+(first?' on':'')); p.id='pane-'+k;
+    const sca=(k==='volatilita'||k==='cripto')?8:(k==='tassi'?4:3);
+    let h=`<table><thead><tr><th>Strumento</th><th>Ultimo</th><th>1g</th><th>1 sett</th><th>1 mese</th>
+      <th>3 mesi</th><th>YTD</th><th>vs media 200g</th><th>Pos. 52s</th></tr></thead><tbody>`;
+    rows.forEach(r=>{h+=`<tr><td class="nm-cell">${r.nome}<span class="tk">${r.ticker}</span></td>
+      <td>${num(r.ultimo, r.ultimo<10?3:2)}</td>`+ch(r['1g'],sca)+ch(r['1sett'],sca*1.6)+ch(r['1mese'],sca*2.5)
+      +ch(r['3mesi'],sca*4)+ch(r.ytd,sca*6)+ch(r.vs200,sca*4,1);
+      const pos=r.pos52;
+      h+=`<td>${pos==null?'–':`<span class="heat" style="background:linear-gradient(90deg,var(--s1) ${pos}%,var(--surface-2) ${pos}%)">${pos}</span>`}</td></tr>`;});
+    p.innerHTML=h+'</tbody></table>';
+    tabs.appendChild(b); panes.appendChild(p); first=false;});
+  tabs.onclick=e=>{const b=e.target.closest('.tab'); if(!b)return;
+    tabs.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected','false'));
+    b.setAttribute('aria-selected','true');
+    panes.querySelectorAll('.pane').forEach(p=>p.classList.remove('on'));
+    $('#pane-'+b.dataset.k).classList.add('on');};
+})();
+
+/* ---------- MACRO / RAPPORTI / BASE RATE / EPISODI ---------- */
+(function(){
+  const g={credit:'Credito',conditions:'Condizioni finanziarie',liquidity:'Liquidità',rates:'Tassi',
+    inflation:'Inflazione',policy:'Politica monetaria',growth:'Crescita'};
+  let h=`<table><thead><tr><th>Serie</th><th>Blocco</th><th>Valore</th><th>Var. 1m</th><th>Var. 3m</th>
+    <th>Var. 12m</th><th>Var. annua %</th><th>Percentile 5 anni</th></tr></thead><tbody>`;
+  D.macro.forEach(r=>{h+=`<tr><td class="nm-cell">${r.nome}<span class="tk">${r.id}</span></td>
+    <td style="text-align:left;color:var(--muted)">${g[r.gruppo]||r.gruppo}</td><td><b>${num(r.valore,3)}</b></td>`
+    +ch(r.var_1m,1,3)+ch(r.var_3m,1.5,3)+ch(r.var_12m,2,3)+(r['yoy_%']!=null?ch(r['yoy_%'],6,1):'<td>–</td>')
+    +`<td><span class="heat" style="background:linear-gradient(90deg,var(--s1) ${r.pct_5a}%,var(--surface-2) ${r.pct_5a}%)">${r.pct_5a}</span></td></tr>`;});
+  $('#macro').innerHTML=h+'</tbody></table>';
+
+  const t={breadth:'Ampiezza',credit:'Credito',risk_appetite:'Propensione al rischio',growth:'Crescita',
+    style:'Stile',inflation:'Inflazione',defensive:'Difensivo'};
+  let r2=`<table><thead><tr><th>Rapporto</th><th>Tema</th><th>1 mese</th><th>3 mesi</th><th>6 mesi</th><th>Percentile 5 anni</th></tr></thead><tbody>`;
+  D.rapporti.forEach(r=>{r2+=`<tr><td class="nm-cell">${r.nome}</td><td style="text-align:left;color:var(--muted)">${t[r.tema]||r.tema}</td>`
+    +ch(r.var_1m,4)+ch(r.var_3m,7)+ch(r.var_6m,10)
+    +`<td><span class="heat" style="background:linear-gradient(90deg,var(--s1) ${r.pct_5a}%,var(--surface-2) ${r.pct_5a}%)">${r.pct_5a}</span></td></tr>`;});
+  $('#ratios').innerHTML=r2+'</tbody></table>';
+
+  const cur=D.base_rate_corrente||{};
+  let b=`<p class="note" style="margin:0 0 12px">Attenzione: come mostrato sopra, <b>nessuna di queste differenze
+    è statisticamente significativa</b>. Sono qui per completezza e per far vedere quanto poco separa
+    gli stati sul fronte dei rendimenti — non per essere usate come previsione.</p>
+    <table><thead><tr><th>Livello</th><th>Direzione</th><th>Giorni</th><th>Quota %</th><th>1m medio</th>
+    <th>1m pos.</th><th>3m medio</th><th>3m pos.</th><th>6m medio</th><th>Perdita max 3m</th></tr></thead><tbody>`;
+  (D.base_rate_2d||[]).forEach(r=>{const on=r.livello===cur.livello&&r.direzione===cur.direzione;
+    b+=`<tr class="${on?'hi':''}"><td class="nm-cell"><span class="dot" style="background:${sc(r.livello)};opacity:${so(r.livello)};display:inline-block;margin-right:7px"></span>${r.livello}${on?' <b style="color:var(--s1)">← oggi</b>':''}</td>
+      <td style="text-align:left;color:var(--ink-2)">${DIR_ICO[r.direzione]||''} ${r.direzione}</td>
+      <td style="color:var(--muted)">${r.giorni}</td><td style="color:var(--muted)">${n0(r['quota_%'],1)}</td>`
+      +ch(r['1 mese_medio_%'],3)+`<td>${n0(r['1 mese_pos_%'],1)}</td>`+ch(r['3 mesi_medio_%'],5)
+      +`<td>${n0(r['3 mesi_pos_%'],1)}</td>`+ch(r['6 mesi_medio_%'],7)+ch(r['dd_3m_%'],8)+'</tr>';});
+  $('#br2d').innerHTML=b+'</tbody></table>';
+
+  let ep=`<table><thead><tr><th>Stato</th><th>Inizio</th><th>Fine</th><th>Giorni</th>
+    <th>S&amp;P durante</th><th>Minimo toccato</th><th>S&amp;P 3 mesi dopo</th></tr></thead><tbody>`;
+  (D.episodi||[]).slice().reverse().forEach(r=>{
+    ep+=`<tr><td class="nm-cell"><span class="dot" style="background:${sc(r.stato)};opacity:${so(r.stato)};display:inline-block;margin-right:7px"></span>${r.stato}</td>
+      <td>${r.inizio}</td><td>${r.fine}</td><td style="color:var(--muted)">${r.giorni}</td>`
+      +ch(r['indice_durante_%'],20,1)+ch(r['min_durante_%'],20,1)+ch(r['indice_3m_dopo_%'],20,1)+'</tr>';});
+  $('#epis').innerHTML=ep+'</tbody></table>';
+})();
+
+$('#foot').innerHTML=`<b>Come è costruito.</b> Punteggio tattico = media pesata di quattro pilastri
+ (tendenza 30%, volatilità 25%, credito 25%, propensione al rischio 20%). Dentro ogni pilastro i
+ <i>sotto-blocchi tematici</i> pesano uguale, così quattro spread di credito non vengono diluiti da tredici
+ rapporti fra ETF. Ogni componente è uno z-score retrospettivo a 3 anni; il totale passa per una tangente
+ iperbolica. Le soglie di stato hanno un'isteresi di 6 punti.
+ <br><br><b>Niente look-ahead.</b> Le serie macro entrano nel modello con il loro <i>vero</i> ritardo di
+ pubblicazione — il CPI di giugno a metà luglio, non il 1° giugno. Le serie ferme da oltre 5 giorni escono
+ automaticamente dal calcolo invece di essere trascinate in avanti.
+ <br><br><b>Cosa è stato tolto perché era rumore.</b> La tabella di leadership settoriale (t-statistiche
+ tutte sotto 1) e il premio di volatilità implicita, che salendo durante i crolli annullava il segnale
+ del VIX e rendeva il pilastro volatilità quasi cieco.
+ <br><br>Fonti: Yahoo Finance (prezzi), FRED · Federal Reserve Bank of St. Louis (macro, credito,
+ liquidità), TradingView (grafici). Modello statistico di confronto: Statistical Jump Model
+ (Nystrup, Kolm, Lindström).`;
+</script>
+</body>
+</html>
